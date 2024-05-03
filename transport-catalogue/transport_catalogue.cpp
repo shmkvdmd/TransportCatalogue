@@ -6,12 +6,12 @@
 
 namespace tc{
 
-void TransportCatalogue::AddStop(const std::string& stop_name, double lat, double lon){
-    stops_.push_back({stop_name, lat, lon});
+void TransportCatalogue::AddStop(const std::string& stop_name, dist::Coordinates cords){
+    stops_.push_back({stop_name, cords.lat, cords.lng});
     stopname_to_stop_[stops_.back().stop_name] = &stops_.back();
 }
 
-void TransportCatalogue::AddBus(const std::string& bus_name, std::vector<std::string_view> stops){
+void TransportCatalogue::AddBus(const std::string& bus_name, const std::vector<std::string_view>& stops){
     buses_.push_back({bus_name, stops});
     busname_to_bus_[buses_.back().bus_name] = &buses_.back();
     for(const auto& stop : stops){
@@ -24,11 +24,13 @@ void TransportCatalogue::AddBus(const std::string& bus_name, std::vector<std::st
 }
 
 const Stop* TransportCatalogue::FindStopByName(std::string_view stop_name) const{
-    return stopname_to_stop_.count(stop_name) ? stopname_to_stop_.at(stop_name) : nullptr;
+    auto iter = stopname_to_stop_.find(stop_name);
+    return iter->second;
 }
 
 const Bus* TransportCatalogue::FindBusByName(std::string_view bus_name) const {
-    return busname_to_bus_.count(bus_name) ? busname_to_bus_.at(bus_name) : nullptr;
+    auto iter = busname_to_bus_.find(bus_name);
+    return iter->second;
 }
 
 const RouteInformation TransportCatalogue::GetRouteInfo(std::string_view bus_name) const{
@@ -42,8 +44,8 @@ const RouteInformation TransportCatalogue::GetRouteInfo(std::string_view bus_nam
         }
     }
     for (auto iter = bus.stop_names.begin(); iter + 1 != bus.stop_names.end(); ++iter){
-        cords_from = {stopname_to_stop_.find(*iter)->second->latitude, stopname_to_stop_.find(*iter)->second->longitude};
-        cords_to = {stopname_to_stop_.find(*(iter + 1))->second->latitude, stopname_to_stop_.find(*(iter + 1))->second->longitude};
+        cords_from = {stopname_to_stop_.find(*iter)->second->cords.lat, stopname_to_stop_.find(*iter)->second->cords.lng};
+        cords_to = {stopname_to_stop_.find(*(iter + 1))->second->cords.lat, stopname_to_stop_.find(*(iter + 1))->second->cords.lng};
         route_distance += ComputeDistance(cords_from, cords_to);
     }
     return {bus.bus_name, bus.stop_names.size(), unique_stops.size(), route_distance};

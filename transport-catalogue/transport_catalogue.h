@@ -13,7 +13,7 @@ namespace tc{
 	
 struct Stop{
 	std::string stop_name;
-	double latitude = 0, longitude = 0;
+	dist::Coordinates cords;
 };
 
 struct Bus{
@@ -28,11 +28,10 @@ struct RouteInformation{
 	double route_length;
 };
 
-
 class TransportCatalogue {
 public:
-	void AddStop(const std::string& stop_name, double lat, double lon);
-	void AddBus(const std::string& bus_name, std::vector<std::string_view> stops);
+	void AddStop(const std::string& stop_name, dist::Coordinates cords);
+	void AddBus(const std::string& bus_name, const std::vector<std::string_view>& stops);
 	const Stop* FindStopByName(std::string_view stop_name) const;
 	const Bus* FindBusByName(std::string_view bus_name) const ;
 	const RouteInformation GetRouteInfo(std::string_view bus_name) const;

@@ -101,14 +101,11 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
     std::vector<CommandDescription> bus_commands;
     for (auto& command : commands_){
         if (command.command == "Stop"){
-            stop_commands.push_back(std::move(command));
+            catalogue.AddStop(command.id, {ParseCoordinates(command.description).lat, ParseCoordinates(command.description).lng});
         }
         else if (command.command == "Bus"){
             bus_commands.push_back(std::move(command));
         }
-    }
-    for (const auto& stop_command : stop_commands){
-        catalogue.AddStop(stop_command.id, ParseCoordinates(stop_command.description).lat, ParseCoordinates(stop_command.description).lng);
     }
     for (const auto& bus_command : bus_commands){
         std::vector<std::string_view> new_vec;
