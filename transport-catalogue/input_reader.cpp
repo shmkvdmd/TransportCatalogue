@@ -77,6 +77,17 @@ CommandDescription ParseCommandDescription(std::string_view line) {
 
 }
 
+std::vector<std::pair<std::string_view, int>> ParseDistance(std::string_view information){
+    std::vector<std::pair<std::string_view, int>> stops_to_distances;
+    std::vector<std::string_view> splitted_str = detail::Split(information,',');
+    for (size_t i = 2; i != splitted_str.size(); ++i){
+        std::string distance = std::string(detail::Trim(splitted_str[i].substr(0, splitted_str[i].find('m'))));
+        std::string_view stop = detail::Trim(splitted_str[i].substr(splitted_str[i].find('m') + 4));
+        stops_to_distances.emplace_back(stop, stoi(distance));
+    }
+    return stops_to_distances;
+}
+
 void InputReader::ParseLine(std::string_view line) {
     auto command_description = detail::ParseCommandDescription(line);
     if (command_description) {
@@ -97,7 +108,6 @@ std::vector<std::string_view> ParseRoute(std::string_view route) {
 }
 
 void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
-    std::vector<CommandDescription> stop_commands;
     std::vector<CommandDescription> bus_commands;
     for (auto& command : commands_){
         if (command.command == "Stop"){
@@ -114,6 +124,14 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
             new_vec.push_back(stop->stop_name);
         }
         catalogue.AddBus(bus_command.id, new_vec);
+    }
+
+    for (auto& command : commands_){
+        if (command.command == "Stop"){
+            for (auto& elem : ParseDistance(command.description)){
+                catalogue.SetDistanceToStops(catalogue.FindStopByName(command.id), catalogue.FindStopByName(elem.first), elem.second);
+            }
+        }
     }
 }
 

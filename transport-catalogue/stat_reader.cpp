@@ -26,7 +26,7 @@ void PrintBus(const TransportCatalogue &transport_catalogue, std::string_view re
         RouteInformation route_info = transport_catalogue.GetRouteInfo(bus_name);
         output << "Bus " << route_info.bus_name << ": " << route_info.stops_on_route << " stops on route, "
                 << route_info.unique_stops << " unique stops, " << std::setprecision(6) << route_info.route_length
-                << " route length" << std::endl;
+                << " route length, " << route_info.curvature << " curvature" << std::endl;
     }            
 }
 
