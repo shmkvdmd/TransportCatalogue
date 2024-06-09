@@ -6,39 +6,36 @@
 
 namespace tc{
 
-void TransportCatalogue::AddStop(const std::string& stop_name, dist::Coordinates cords){
+void TransportCatalogue::AddStop(const std::string& stop_name, geo::Coordinates cords){
     stops_.push_back({stop_name, cords.lat, cords.lng});
     stopname_to_stop_[stops_.back().stop_name] = &stops_.back();
 }
 
-void TransportCatalogue::AddBus(const std::string& bus_name, const std::vector<std::string_view>& stops){
-    buses_.push_back({bus_name, stops});
+void TransportCatalogue::AddBus(const std::string& bus_name, const std::vector<std::string>& stops, bool is_roundtrip){
+    buses_.push_back({bus_name, stops, is_roundtrip});
     busname_to_bus_[buses_.back().bus_name] = &buses_.back();
-    for(const auto& stop : stops){
-        for (const auto& elem : stopname_to_stop_){
-            if(elem.second->stop_name == stop){
-                stops_to_buses_[const_cast<Stop*>(elem.second)].push_back(bus_name);
-            }
-        }
+    for(auto stop_name : stops){
+        auto stop = FindStopByName(stop_name);
+        stops_to_buses_[stop].emplace_back(bus_name);
     }
 }
 
-const Stop* TransportCatalogue::FindStopByName(std::string_view stop_name) const{
+const Stop* TransportCatalogue::FindStopByName(const std::string& stop_name) const{
     auto iter = stopname_to_stop_.find(stop_name);
     return iter != stopname_to_stop_.end() ? iter->second : nullptr;
 }
 
-const Bus* TransportCatalogue::FindBusByName(std::string_view bus_name) const {
+const Bus* TransportCatalogue::FindBusByName(const std::string& bus_name) const {
     auto iter = busname_to_bus_.find(bus_name);
     return iter != busname_to_bus_.end() ? iter->second : nullptr;
 }
 
 const RouteInformation TransportCatalogue::GetRouteInfo(std::string_view bus_name) const{
-    Bus bus = *FindBusByName(bus_name);
+    Bus bus = *FindBusByName(std::string(bus_name));
     double geo_distance = 0;
     int route_distance = 0;
     double curvature = 0;
-    dist::Coordinates cords_from, cords_to;
+    geo::Coordinates cords_from, cords_to;
     std::unordered_set<std::string_view> unique_stops;
     for (const auto& bus_stop: bus.stop_names){
         if(!unique_stops.count(bus_stop)){
@@ -56,7 +53,7 @@ const RouteInformation TransportCatalogue::GetRouteInfo(std::string_view bus_nam
 }
 
 const std::set<std::string_view> TransportCatalogue::GetStopInfo(std::string_view stop_name) const{
-    const Stop* stop = FindStopByName(stop_name);
+    const Stop* stop = FindStopByName(std::string(stop_name));
     std::set<std::string_view> unique_buses;
     auto it = stops_to_buses_.find(const_cast<Stop*>(stop));
     if (it != stops_to_buses_.end()){
@@ -73,5 +70,50 @@ void TransportCatalogue::SetDistanceToStops(const Stop* stop1, const Stop* stop2
 
 int TransportCatalogue::GetDistanceBetweenStops(const Stop* stop1, const Stop* stop2) const {
     return stops_distances_.count({stop1, stop2}) ? stops_distances_.at({stop1,stop2}) : stops_distances_.at({stop2,stop1});
+}
+
+std::set<std::string_view> TransportCatalogue::GetUniqueStops(std::string_view bus_name) const {
+    std::set<std::string_view> unique_stops;
+    if(!busname_to_bus_.at(bus_name)->stop_names.empty()){
+        for(const auto& stop : busname_to_bus_.at(bus_name)->stop_names){
+            unique_stops.insert(stop);
+        }
+    }
+    return unique_stops;
+}
+
+std::set<std::string_view> TransportCatalogue::GetUniqueBuses(std::string_view stop_name) const {
+    std::set<std::string_view> unique_buses;
+    const Stop* stop = FindStopByName(std::string(stop_name));
+    const auto iter = stops_to_buses_.find(stop);
+    if(iter != stops_to_buses_.end() && !iter->second.empty()){
+        for (const auto& bus : iter->second){
+            unique_buses.insert(bus);
+        }
+    }
+    return unique_buses;
+}
+
+std::unordered_map<std::string_view, const Bus*> TransportCatalogue::GetBusesMap() const {
+    return busname_to_bus_;
+}
+
+
+std::deque<Bus> TransportCatalogue::GetAllSortedBuses() const{
+    std::deque<Bus> sorted_buses = buses_;
+    std::sort(sorted_buses.begin(), sorted_buses.end(), [](const Bus& left_bus, const Bus& right_bus){
+        return std::lexicographical_compare(left_bus.bus_name.begin(), left_bus.bus_name.end(),
+                                            right_bus.bus_name.begin(), right_bus.bus_name.end());
+    });
+    return sorted_buses;
+}
+
+std::deque<Stop> TransportCatalogue::GetAllSortedStops() const{
+    std::deque<Stop> sorted_stops = stops_;
+    std::sort(sorted_stops.begin(), sorted_stops.end(), [](const Stop& left_stop, const Stop& right_stop){
+        return std::lexicographical_compare(left_stop.stop_name.begin(), left_stop.stop_name.end(),
+                                            right_stop.stop_name.begin(), right_stop.stop_name.end());
+    });
+    return sorted_stops;
 }
 }
