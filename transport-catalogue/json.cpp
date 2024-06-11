@@ -213,68 +213,68 @@ Node LoadNode(std::istream& input) {
 
 
 bool Node::IsInt() const {
-    return std::holds_alternative<int>(value_);
+    return std::holds_alternative<int>(*this);
 }
 
 bool Node::IsDouble() const {
-    return (std::holds_alternative<double>(value_) || std::holds_alternative<int>(value_));
+    return (std::holds_alternative<double>(*this) || std::holds_alternative<int>(*this));
 }
 
 bool Node::IsPureDouble() const {
-    return std::holds_alternative<double>(value_);
+    return std::holds_alternative<double>(*this);
 }
 
 bool Node::IsBool() const {
-    return std::holds_alternative<bool>(value_);
+    return std::holds_alternative<bool>(*this);
 }
 
 bool Node::IsString() const {
-    return std::holds_alternative<std::string>(value_);
+    return std::holds_alternative<std::string>(*this);
 }
 
 bool Node::IsNull() const {
-    return std::holds_alternative<std::nullptr_t>(value_);
+    return std::holds_alternative<std::nullptr_t>(*this);
 }
 
 bool Node::IsArray() const {
-    return std::holds_alternative<Array>(value_);
+    return std::holds_alternative<Array>(*this);
 }
 
 bool Node::IsMap() const {
-    return std::holds_alternative<Dict>(value_);
+    return std::holds_alternative<Dict>(*this);
 }
 
 const Array& Node::AsArray() const {
     if (IsArray()){
-        return std::get<Array>(value_);
+        return std::get<Array>(*this);
     }
     throw std::logic_error("Wrong type");
 }
 
 const Dict& Node::AsMap() const {
     if (IsMap()){
-        return std::get<Dict>(value_);
+        return std::get<Dict>(*this);
     }
     throw std::logic_error("Wrong type");
 }
 
 int Node::AsInt() const {
     if (IsInt()){
-        return std::get<int>(value_);
+        return std::get<int>(*this);
     }
     throw std::logic_error("Wrong type");
 }
 
 const std::string& Node::AsString() const {
     if (IsString()){
-        return std::get<std::string>(value_);
+        return std::get<std::string>(*this);
     }
     throw std::logic_error("Wrong type");
 }
 
 bool Node::AsBool() const{
     if (IsBool()){
-        return std::get<bool>(value_);
+        return std::get<bool>(*this);
     }
     throw std::logic_error("Wrong type");
 }
@@ -283,16 +283,16 @@ double Node::AsDouble() const{
     if (!IsDouble()){
         throw std::logic_error("Wrong type");
     }
-    if(IsInt()) return static_cast<double>(std::get<int>(value_));
-    return std::get<double>(value_);
+    if(IsInt()) return static_cast<double>(std::get<int>(*this));
+    return std::get<double>(*this);
 }
 
 bool Node::operator==(const Node& rhs){
-    return value_ == rhs.GetValue();
+    return *this == rhs.GetValue();
 }
 
 bool Node::operator !=(const Node& rhs){
-    return !(value_ == rhs.GetValue());
+    return !(*this == rhs.GetValue());
 }
 
 bool operator==(const Node& lhs, const Node& rhs){

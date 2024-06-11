@@ -33,10 +33,10 @@ public:
     StopInfo GetStopInfo(const json::Dict& request) const;
     BusInfo GetBusInfo(const json::Dict& request) const;
 
-    void ApplyRequests(const json::Node& stat_request, RequestHandler& handler);
-    json::Node GetBusRequest(const json::Dict& stat_request, RequestHandler& handler) const;
-    json::Node GetStopRequest(const json::Dict& stat_request, RequestHandler& handler) const;
-    json::Node GetMapRequest(const json::Dict& stat_request, RequestHandler& handler) const;
+    void ApplyRequests(const json::Node& stat_request, const RequestHandler& handler);
+    json::Node GetBusRequest(const json::Dict& stat_request, const RequestHandler& handler) const;
+    json::Node GetStopRequest(const json::Dict& stat_request, const RequestHandler& handler) const;
+    json::Node GetMapRequest(const json::Dict& stat_request, const RequestHandler& handler) const;
 
     render::RenderSettings SetRenderSettings(const json::Dict& render_settings);
     svg::Color GetColor(const json::Array& color_variant);

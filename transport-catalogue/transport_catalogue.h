@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 #include <utility>
+#include <optional>
 
 #include "geo.h"
 
@@ -42,24 +43,26 @@ class TransportCatalogue {
 public:
 	void AddStop(const std::string& stop_name, geo::Coordinates cords);
 	void AddBus(const std::string& bus_name, const std::vector<std::string>& stops, bool is_roundtrip);
-	const Stop* FindStopByName(const std::string& stop_name) const;
-	const Bus* FindBusByName(const std::string& bus_name) const ;
+	const Stop* FindStopByName(std::string_view stop_name) const;
+	const Bus* FindBusByName(std::string_view  bus_name) const ;
 	const RouteInformation GetRouteInfo(std::string_view bus_name) const;
 	const std::set<std::string_view> GetStopInfo(std::string_view stop_name) const;
 	void SetDistanceToStops(const Stop* stop1, const Stop* stop2, int distance);
 	int GetDistanceBetweenStops(const Stop* stop1, const Stop* stop2) const;
-	std::set<std::string_view> GetUniqueStops(std::string_view bus_name) const;
+	std::optional<RouteInformation> GetBusStat(std::string_view bus_name) const;
 	std::set<std::string_view> GetUniqueBuses(std::string_view stop_name) const;
 	std::unordered_map<std::string_view, const Bus*> GetBusesMap() const;
 	std::deque<Bus> GetAllSortedBuses() const;
 	std::deque<Stop> GetAllSortedStops() const;
 
 private:
+	size_t GetUniqueStopsCount(std::string_view bus_name) const;
+
 	std::deque<Bus> buses_;
 	std::deque<Stop> stops_;
 	std::unordered_map<std::string_view, const Stop*> stopname_to_stop_;
 	std::unordered_map<std::string_view, const Bus*> busname_to_bus_;
-	std::unordered_map<const Stop*, std::vector<std::string>> stops_to_buses_;
+	std::unordered_map<const Stop*, std::vector<std::string>> stops_to_buses_; //Получаю мусор в векторе, если поменять на string_view
 	std::unordered_map<std::pair<const Stop*, const Stop*>, int, PtrHasher> stops_distances_; 
 };
 }

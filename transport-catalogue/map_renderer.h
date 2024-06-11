@@ -97,6 +97,16 @@ class MapRenderer{
 public:
     MapRenderer(const RenderSettings& render_settings) : render_settings_(render_settings) {}
     const RenderSettings& GetRenderSettings() const;
+    std::vector<svg::Polyline> GetRouteLines(const SphereProjector& projector, const tc::TransportCatalogue& catalogue) const;
+    std::vector<svg::Text> GetBusNames(const render::SphereProjector& projector, const tc::TransportCatalogue& catalogue) const;
+    std::vector<svg::Circle> GetStopCircles(const render::SphereProjector& projector, const tc::TransportCatalogue& catalogue) const;
+    std::vector<svg::Text> GetStopNames(const render::SphereProjector& projector, const tc::TransportCatalogue& catalogue) const;
+    svg::Document RenderMap(const tc::TransportCatalogue& catalogue) const;
+    void RenderRouteLines(const render::SphereProjector& projector, const tc::TransportCatalogue& catalogue, svg::Document& render_doc) const;
+    void RenderBusNames(const render::SphereProjector& projector, const tc::TransportCatalogue& catalogue, svg::Document& render_doc) const;
+    void RenderStopCircles(const render::SphereProjector& projector, const tc::TransportCatalogue& catalogue, svg::Document& render_doc) const;
+    void RenderStopNames(const render::SphereProjector& projector, const tc::TransportCatalogue& catalogue, svg::Document& render_doc) const;
+    std::vector<geo::Coordinates> GetCoordinatesVector(const tc::TransportCatalogue& catalogue) const;
 private:
     RenderSettings render_settings_;
 };

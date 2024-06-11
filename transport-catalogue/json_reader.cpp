@@ -23,7 +23,7 @@ void JsonReader::FillCatalogue(tc::TransportCatalogue& catalogue){
 }
 
 void JsonReader::FillStops(json::Array request_values, tc::TransportCatalogue& catalogue){
-    for (auto& value : request_values){
+    for (const auto& value : request_values){
         if (value.AsMap().at("type").AsString() == "Stop"){
             StopInfo stop_info = GetStopInfo(value.AsMap());
             catalogue.AddStop(stop_info.stop_name, stop_info.cords);
@@ -32,7 +32,7 @@ void JsonReader::FillStops(json::Array request_values, tc::TransportCatalogue& c
 }
 
 void JsonReader::SetDistancesToStops(json::Array request_values, tc::TransportCatalogue& catalogue){
-    for (auto& value : request_values){
+    for (const auto& value : request_values){
         if (value.AsMap().at("type").AsString() == "Stop"){
             StopInfo stop_info = GetStopInfo(value.AsMap());
             for (const auto& [another_stop, distance] : stop_info.stops_distances){
@@ -74,18 +74,19 @@ BusInfo JsonReader::GetBusInfo(const json::Dict& request) const{
     return bus_info;
 }
 
-void JsonReader::ApplyRequests(const json::Node& stat_request, RequestHandler& handler){
+void JsonReader::ApplyRequests(const json::Node& stat_request, const RequestHandler& handler){
     json::Array result;
     for (auto& request : stat_request.AsArray()){
-        if(request.AsMap().at("type").AsString() == "Stop"){
+        const auto& type_request = request.AsMap().at("type").AsString();
+        if(type_request == "Stop"){
             auto res = GetStopRequest(request.AsMap(),handler).AsMap();
             result.emplace_back(res);
         }
-        if(request.AsMap().at("type").AsString() == "Bus"){
+        if(type_request == "Bus"){
             auto res = GetBusRequest(request.AsMap(), handler).AsMap();
             result.emplace_back(res);
         }
-        if(request.AsMap().at("type").AsString() == "Map"){
+        if(type_request == "Map"){
             auto res = GetMapRequest(request.AsMap(), handler).AsMap();
             result.emplace_back(res);
         }
@@ -93,7 +94,7 @@ void JsonReader::ApplyRequests(const json::Node& stat_request, RequestHandler& h
     json::Print(json::Document{result}, std::cout);
 }
 
-json::Node JsonReader::GetBusRequest(const json::Dict& stat_request, RequestHandler& handler) const{
+json::Node JsonReader::GetBusRequest(const json::Dict& stat_request, const RequestHandler& handler) const{
     json::Dict result;
     std::string bus_name  = stat_request.at("name").AsString();
     result["request_id"] = stat_request.at("id").AsInt();
@@ -101,15 +102,16 @@ json::Node JsonReader::GetBusRequest(const json::Dict& stat_request, RequestHand
         result["error_message"] = json::Node{std::string("not found")};
     }
     else{
-        result["curvature"] = handler.GetBusStat(bus_name)->curvature;
-        result["route_length"] = handler.GetBusStat(bus_name)->route_length;
-        result["stop_count"] = static_cast<int>(handler.GetBusStat(bus_name)->stops_on_route);
-        result["unique_stop_count"] = static_cast<int>(handler.GetBusStat(bus_name)->unique_stops);
+        const auto& bus_stat = handler.GetBusStat(bus_name);
+        result["curvature"] = bus_stat->curvature;
+        result["route_length"] = bus_stat->route_length;
+        result["stop_count"] = static_cast<int>(bus_stat->stops_on_route);
+        result["unique_stop_count"] = static_cast<int>(bus_stat->unique_stops);
     }
     return json::Node{result};
 }
 
-json::Node JsonReader::GetStopRequest(const json::Dict& stat_request, RequestHandler& handler) const{
+json::Node JsonReader::GetStopRequest(const json::Dict& stat_request, const RequestHandler& handler) const{
     json::Dict result;
     std::string stop_name = stat_request.at("name").AsString();
     result["request_id"] = stat_request.at("id").AsInt();
@@ -174,7 +176,7 @@ render::RenderSettings JsonReader::SetRenderSettings(const json::Dict& render_se
     return render_object;
 }
 
-json::Node JsonReader::GetMapRequest(const json::Dict& stat_request, RequestHandler& handler) const{
+json::Node JsonReader::GetMapRequest(const json::Dict& stat_request, const RequestHandler& handler) const{
     json::Dict result;
     result["request_id"] = stat_request.at("id").AsInt();
     std::ostringstream outs;

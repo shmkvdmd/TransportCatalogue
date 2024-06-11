@@ -8,17 +8,14 @@ class RequestHandler {
 public:
     RequestHandler(const tc::TransportCatalogue& db, const render::MapRenderer& renderer) : db_(db), renderer_(renderer) {}
 
-    // Возвращает информацию о маршруте (запрос Bus)
-    std::optional<tc::RouteInformation> GetBusStat(const std::string_view& bus_name) const;
+    std::optional<tc::RouteInformation> GetBusStat(std::string_view bus_name) const;
 
-    // Возвращает маршруты, проходящие через
-    const std::set<std::string_view> GetBusesByStop(const std::string_view& stop_name) const;
+    const std::set<std::string_view> GetBusesByStop(std::string_view stop_name) const;
 
-    bool CheckBus(const std::string& bus_name);
-    bool CheckStop(const std::string& stop_name);
+    bool CheckBus(const std::string& bus_name) const;
+    bool CheckStop(const std::string& stop_name) const;
 
     std::vector<geo::Coordinates> GetCoordinatesVector() const;
-    std::vector<svg::Polyline> GetRouteLines(const render::SphereProjector& projector) const;
     std::vector<svg::Text> GetBusNames(const render::SphereProjector& projector) const;
     std::vector<svg::Circle> GetStopCircles(const render::SphereProjector& projector) const;
     std::vector<svg::Text> GetStopNames(const render::SphereProjector& projector) const;
