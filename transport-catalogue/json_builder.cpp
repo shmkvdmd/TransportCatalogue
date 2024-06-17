@@ -1,99 +1,152 @@
 #include "json_builder.h"
 #include <exception>
-#include <variant>
-#include <utility>
 
 using namespace std::literals;
 
 namespace json {
 
-Builder::Builder()
-    : root_()
-    , nodes_stack_{&root_}
-{}
+Builder::Builder() : root_(), nodes_stack_{&root_} {}
 
-Node Builder::Build() {
-    if (!nodes_stack_.empty()) {
-        throw std::logic_error("Attempt to build JSON which isn't finalized"s);
+Node Builder::Build(){
+    if(root_.IsNull() || nodes_stack_.size() > 1){
+        throw std::logic_error("Attempt to build JSON which isn't initialized");
     }
     return std::move(root_);
 }
 
-Builder::DictValueContext Builder::Key(std::string key) {
-    Node::Value& host_value = GetCurrentValue();
-    
-    if (!std::holds_alternative<Dict>(host_value)) {
-        throw std::logic_error("Key() outside a dict"s);
+KeyItemContext Builder::Key(std::string key){
+    if(!current_key_.has_value() && nodes_stack_.back()->IsDict()){
+        current_key_ = std::move(key);
     }
-    
-    nodes_stack_.push_back(
-        &std::get<Dict>(host_value)[std::move(key)]
-    );
-    return BaseContext{*this};
-}
-
-Builder::BaseContext Builder::Value(Node::Value value) {
-    AddObject(std::move(value), true);
+    else{
+        throw std::logic_error("Error setting Key");
+    }
     return *this;
 }
 
-Builder::DictItemContext Builder::StartDict() {
-    AddObject(Dict{}, false);
-    return BaseContext{*this};
+Builder& Builder::Value(Node::Value value){
+    if(root_.IsNull()){
+        root_.GetValue() = std::move(value);
+    }
+    else if(nodes_stack_.back()->IsDict()){
+        if(!current_key_.has_value()){
+            throw std::logic_error("No key for Dict");
+        }
+        std::get<json::Dict>(nodes_stack_.back()->GetValue()).emplace(current_key_.value(), value);
+        current_key_.reset();
+    }
+    else if(nodes_stack_.back()->IsArray()){
+        std::get<json::Array>(nodes_stack_.back()->GetValue()).emplace_back(std::move(value));
+    }
+    else{
+        throw std::logic_error("No containers for Value");
+    }
+    return *this;
 }
 
-Builder::ArrayItemContext Builder::StartArray() {
-    AddObject(Array{}, false);
-    return BaseContext{*this};
+DictItemContext Builder::StartDict(){
+    if(nodes_stack_.back()->IsNull()){
+        nodes_stack_.back()->GetValue() = Dict{};
+    }
+    else if(nodes_stack_.back()->IsDict()){
+        if(!current_key_.has_value()){
+            throw std::logic_error("No key for Dict");
+        }
+        std::get<json::Dict>(nodes_stack_.back()->GetValue()).emplace(current_key_.value(), Dict{});
+        const json::Node* node = &nodes_stack_.back()->AsDict().at(current_key_.value());
+        nodes_stack_.push_back(const_cast<Node*>(node));
+        current_key_.reset();
+    }
+    else if(nodes_stack_.back()->IsArray()){
+        auto& temp_arr = std::get<json::Array>(nodes_stack_.back()->GetValue());
+        temp_arr.emplace_back(Dict{});
+        nodes_stack_.emplace_back(&temp_arr.back());
+    }
+    else{
+        throw std::logic_error("Cant start Dict");
+    }
+    return *this;
 }
 
-Builder::BaseContext Builder::EndDict() {
-    if (!std::holds_alternative<Dict>(GetCurrentValue())) {
-        throw std::logic_error("EndDict() outside a dict"s);
+ArrayItemContext Builder::StartArray(){
+    if(nodes_stack_.back()->IsNull()){
+        nodes_stack_.back()->GetValue() = Array{};
+    }
+    else if(nodes_stack_.back()->IsDict()){
+        if(!current_key_.has_value()){
+            throw std::logic_error("No key for Dict");
+        }
+        std::get<json::Dict>(nodes_stack_.back()->GetValue()).emplace(current_key_.value(), Array{});
+        const json::Node* node = &nodes_stack_.back()->AsDict().at(current_key_.value());
+        nodes_stack_.push_back(const_cast<Node*>(node));
+        current_key_.reset();
+    }
+    else if(nodes_stack_.back()->IsArray()){
+        auto& temp_arr = std::get<json::Array>(nodes_stack_.back()->GetValue());
+        temp_arr.emplace_back(Array{});
+        nodes_stack_.emplace_back(&temp_arr.back());
+    }
+    else{
+        throw std::logic_error("Cant start Array");
+    }
+    return *this;
+}
+
+Builder& Builder::EndDict(){
+    if(!nodes_stack_.back()->IsDict()){
+        throw std::logic_error("Node not a Dict");
     }
     nodes_stack_.pop_back();
     return *this;
 }
 
-Builder::BaseContext Builder::EndArray() {
-    if (!std::holds_alternative<Array>(GetCurrentValue())) {
-        throw std::logic_error("EndDict() outside an array"s);
+Builder& Builder::EndArray(){
+    if(!nodes_stack_.back()->IsArray()){
+        throw std::logic_error("Node not an Array");
     }
     nodes_stack_.pop_back();
     return *this;
 }
-    
-Node::Value& Builder::GetCurrentValue() {
-    if (nodes_stack_.empty()) {
-        throw std::logic_error("Attempt to change finalized JSON"s);
-    }
-    return nodes_stack_.back()->GetValue();
+// --------- Context ----------
+DictItemContext::DictItemContext(Builder& builder) : builder_(builder) {}
+
+ArrayItemContext::ArrayItemContext(Builder& builder) : builder_(builder) {}
+
+KeyItemContext::KeyItemContext(Builder& builder) : builder_(builder) {}
+
+KeyItemContext DictItemContext::Key(std::string key){
+    return builder_.Key(key);
 }
 
-const Node::Value& Builder::GetCurrentValue() const {
-    return const_cast<Builder*>(this)->GetCurrentValue();
+Builder& DictItemContext::EndDict(){
+    return builder_.EndDict();
 }
 
-void Builder::AssertNewObjectContext() const {
-    if (!std::holds_alternative<std::nullptr_t>(GetCurrentValue())) {
-        throw std::logic_error("New object in wrong context"s);
-    }
+ArrayItemContext ArrayItemContext::Value(Node::Value value){
+    return ArrayItemContext{builder_.Value(value)};
 }
 
-void Builder::AddObject(Node::Value value, bool one_shot) {
-    Node::Value& host_value = GetCurrentValue();
-    if (std::holds_alternative<Array>(host_value)) {
-        Node& node = std::get<Array>(host_value).emplace_back(std::move(value));
-        if (!one_shot) {
-            nodes_stack_.push_back(&node);
-        }
-    } else {
-        AssertNewObjectContext();
-        host_value = std::move(value);
-        if (one_shot) {
-            nodes_stack_.pop_back();
-        }
-    }
+DictItemContext ArrayItemContext::StartDict(){
+    return builder_.StartDict();
 }
 
+Builder& ArrayItemContext::EndArray(){
+    return builder_.EndArray();
+}
+
+ArrayItemContext ArrayItemContext::StartArray(){
+    return builder_.StartArray();
+}
+
+DictItemContext KeyItemContext::Value(Node::Value value){
+    return DictItemContext{builder_.Value(value)};
+}
+
+DictItemContext KeyItemContext::StartDict(){
+    return builder_.StartDict();
+}
+
+ArrayItemContext KeyItemContext::StartArray(){
+    return builder_.StartArray();
+}
 }
