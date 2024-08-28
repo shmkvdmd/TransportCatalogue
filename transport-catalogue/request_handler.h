@@ -1,12 +1,13 @@
 #pragma once
 #include "json.h"
 #include "transport_catalogue.h"
+#include "transport_router.h"
 #include <optional>
 #include "map_renderer.h"
 
 class RequestHandler {
 public:
-    RequestHandler(const tc::TransportCatalogue& db, const render::MapRenderer& renderer) : db_(db), renderer_(renderer) {}
+    RequestHandler(const tc::TransportCatalogue& db, const render::MapRenderer& renderer, const tc::TransportRouter& router) : db_(db), renderer_(renderer), router_(router) {}
 
     std::optional<tc::RouteInformation> GetBusStat(std::string_view bus_name) const;
 
@@ -21,8 +22,12 @@ public:
     std::vector<svg::Text> GetStopNames(const render::SphereProjector& projector) const;
     svg::Document RenderMap() const;
 
+    const std::optional<std::vector<tc::RouterEdge>> GetRoute(const std::string& start, const std::string& end) const;
+    int GetBusWaitTime() const;
+
 private:
     // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
     const tc::TransportCatalogue& db_;
     const render::MapRenderer& renderer_;
+    const tc::TransportRouter& router_;
 };

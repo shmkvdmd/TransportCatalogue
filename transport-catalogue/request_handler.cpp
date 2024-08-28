@@ -19,3 +19,11 @@ bool RequestHandler::CheckStop(const std::string& stop_name) const {
 svg::Document RequestHandler::RenderMap() const{
     return renderer_.RenderMap(db_);
 }
+
+const std::optional<std::vector<tc::RouterEdge>> RequestHandler::GetRoute(const std::string& start, const std::string& end) const{
+    return router_.BuildRoute(start, end);
+}
+
+int RequestHandler::GetBusWaitTime() const{
+    return router_.GetRouterSettings().bus_wait_time;
+}

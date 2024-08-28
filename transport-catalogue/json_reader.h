@@ -25,6 +25,7 @@ public:
     json::Node GetBaseRequests();
     json::Node GetStatRequests();
     json::Node GetRenderSettings();
+    json::Node GetRoutingSettings();
 
     void FillCatalogue(tc::TransportCatalogue& catalogue);
     void FillStops(json::Array request_values, tc::TransportCatalogue& catalogue);
@@ -37,9 +38,12 @@ public:
     json::Node GetBusRequest(const json::Dict& stat_request, const RequestHandler& handler) const;
     json::Node GetStopRequest(const json::Dict& stat_request, const RequestHandler& handler) const;
     json::Node GetMapRequest(const json::Dict& stat_request, const RequestHandler& handler) const;
+    json::Node GetRouteRequest(const json::Dict& stat_request, const RequestHandler& handler) const;
 
     render::RenderSettings SetRenderSettings(const json::Dict& render_settings);
     svg::Color GetColor(const json::Array& color_variant);
+
+    tc::RouterSettings GetRouterSettings(const json::Dict& router_settings);
 
 private:
     json::Document document_;

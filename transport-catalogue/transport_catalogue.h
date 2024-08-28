@@ -55,6 +55,7 @@ public:
 	std::deque<Bus> GetAllSortedBuses() const;
 	std::deque<Stop> GetAllSortedStops() const;
 
+
 private:
 	size_t GetUniqueStopsCount(std::string_view bus_name) const;
 
@@ -62,7 +63,7 @@ private:
 	std::deque<Stop> stops_;
 	std::unordered_map<std::string_view, const Stop*> stopname_to_stop_;
 	std::unordered_map<std::string_view, const Bus*> busname_to_bus_;
-	std::unordered_map<const Stop*, std::vector<std::string>> stops_to_buses_; //Получаю мусор в векторе, если поменять на string_view
+	std::unordered_map<const Stop*, std::vector<std::string>> stops_to_buses_;
 	std::unordered_map<std::pair<const Stop*, const Stop*>, int, PtrHasher> stops_distances_; 
 };
 }

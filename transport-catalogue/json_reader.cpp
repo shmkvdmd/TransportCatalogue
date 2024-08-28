@@ -16,6 +16,11 @@ json::Node JsonReader::GetRenderSettings(){
     return it != document_.GetRoot().AsDict().end() ? it->second : nullptr;
 }
 
+json::Node JsonReader::GetRoutingSettings(){
+    auto it = document_.GetRoot().AsDict().find("routing_settings");
+    return it != document_.GetRoot().AsDict().end() ? it->second : nullptr;
+}
+
 void JsonReader::FillCatalogue(tc::TransportCatalogue& catalogue){
     json::Array request_values = GetBaseRequests().AsArray();
     FillStops(request_values,catalogue);
@@ -91,8 +96,57 @@ void JsonReader::ApplyRequests(const json::Node& stat_request, const RequestHand
             auto res = GetMapRequest(request.AsDict(), handler).AsDict();
             result.emplace_back(res);
         }
+        if(type_request == "Route"){
+            auto res = GetRouteRequest(request.AsDict(), handler).AsDict();
+            result.emplace_back(res);
+        }
     }
     json::Print(json::Document{result}, std::cout);
+}
+
+tc::RouterSettings JsonReader::GetRouterSettings(const json::Dict& router_settings){
+    tc::RouterSettings settings;
+    settings.bus_velocity = router_settings.at("bus_velocity").AsDouble() * 1000 / 60;
+    settings.bus_wait_time = router_settings.at("bus_wait_time").AsInt();
+    return settings;
+}
+
+json::Node JsonReader::GetRouteRequest(const json::Dict& stat_request, const RequestHandler& handler) const{
+    json::Node result;
+    std::string stop_from = stat_request.at("from").AsString();
+    std::string stop_to = stat_request.at("to").AsString();
+    int request_id = stat_request.at("id").AsInt();
+    const std::optional<std::vector<tc::RouterEdge>> route = handler.GetRoute(stop_from, stop_to);
+    if (!route.has_value()){
+        result = json::Builder{}.StartDict().Key("request_id").Value(request_id).Key("error_message").Value("not found").EndDict().Build();
+    }
+    else{
+        int wait_time = handler.GetBusWaitTime();
+        json::Array items;
+        double total_time = 0;
+        for(const auto& edge : route.value()){
+            total_time += edge.time;
+            json::Dict wait_item = json::Builder{}.StartDict()
+                                                .Key("type").Value("Wait")
+                                                .Key("stop_name").Value(edge.start_stop)
+                                                .Key("time").Value(wait_time)
+                                            .EndDict().Build().AsDict();
+            json::Dict bus_item = json::Builder{}.StartDict()
+                                                .Key("type").Value("Bus")
+                                                .Key("bus").Value(edge.bus)
+                                                .Key("span_count").Value(edge.stop_count)
+                                                .Key("time").Value(edge.time - wait_time)
+                                            .EndDict().Build().AsDict();
+            items.push_back(wait_item);
+            items.push_back(bus_item);
+        }
+        result = json::Builder{}.StartDict()
+                            .Key("request_id").Value(request_id)
+                            .Key("total_time").Value(total_time)
+                            .Key("items").Value(items)
+                        .EndDict().Build();
+    }
+    return result;
 }
 
 json::Node JsonReader::GetBusRequest(const json::Dict& stat_request, const RequestHandler& handler) const{
