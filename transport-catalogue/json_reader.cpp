@@ -82,6 +82,7 @@ BusInfo JsonReader::GetBusInfo(const json::Dict& request) const{
 
 void JsonReader::ApplyRequests(const json::Node& stat_request, const RequestHandler& handler){
     json::Array result;
+    std::ofstream file("output.json");
     for (auto& request : stat_request.AsArray()){
         const auto& type_request = request.AsDict().at("type").AsString();
         if(type_request == "Stop"){
@@ -101,7 +102,7 @@ void JsonReader::ApplyRequests(const json::Node& stat_request, const RequestHand
             result.emplace_back(res);
         }
     }
-    json::Print(json::Document{result}, std::cout);
+    json::Print(json::Document{result}, file);
 }
 
 tc::RouterSettings JsonReader::GetRouterSettings(const json::Dict& router_settings){

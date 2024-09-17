@@ -3,7 +3,8 @@
 
 int main() {
     tc::TransportCatalogue catalogue;
-    JsonReader json_reader(std::cin);
+    std::ifstream input("input.json");
+    JsonReader json_reader(input);
     json_reader.FillCatalogue(catalogue);
     auto stat_requests = json_reader.GetStatRequests();
     auto render_settings = json_reader.GetRenderSettings().AsDict();
@@ -14,4 +15,6 @@ int main() {
 
     RequestHandler rh(catalogue, renderer, router);
     json_reader.ApplyRequests(stat_requests, rh);
+    std::ofstream file("map.svg");
+    rh.RenderMap().Render(file);
 }
